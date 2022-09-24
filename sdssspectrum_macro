@@ -1,0 +1,54 @@
+#!/bin/bash
+# This program works with sdss16imaging.c
+# Copyright (C) 2021 Adrian Hernandez Padron <adrianhdezp10@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+parameter_counter=0; while getopts "f:c:d:u:h" arg; do
+	case $arg in
+	f) file=$OPTARG; let parameter_counter+=1;;
+    c) column=$OPTARG; let parameter_counter+=1;;
+    d) destination=$OPTARG; let parameter_counter+=1;;
+    u) urlfile=$OPTARG; let parameter_counter+=1;;
+	h) helpPanel;;
+	esac
+done
+
+mkdir $destination
+touch $urlfile
+
+function helpPanel(){
+    echo -e "\n[!]Usage:"
+    echo -e "\n\n\t[-f] Table .fits that you want to analyze"
+    echo -e "\n\n\t[-c] Select the columns with the id FITS(required) file:"
+    echo -e "\n\n\t[-d] Name of the folder when you want to save all the images and information"
+    echo -e "\n\n\t[-u] Name of the file when you want to save the sdss url"
+}
+
+if [ $parameter_counter -eq 4 ]; then
+    coordinates=$(asttable $file -c $column | sed -e 's/ /,/' | sed -s 's/ //g')
+    img_counter=0
+    for i in $coordinates; do
+        let img_counter+=1
+        ./sdss16imaging --centre=$i --output="($img_counter)$i" --overlay=GOL 2>/dev/null
+        mv "($img_counter)$i" $destination
+        id=$(echo $i)
+        echo "($img_counter)$i" >> $urlfile
+        echo "http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?id=$id" >> $urlfile
+    done
+    mv $urlfile $destination
+else 
+    helpPanel
+fi
